@@ -1273,12 +1273,12 @@
                 
                 // 2. Generic match check
                 if (!isMatch) {
-                    const genericParts = generic.split(/\s*\/\s*/);
+                    const genericParts = generic.split(/\s+\/\s+/);
                     if (genericParts.length > 1) {
                         // For combination drugs, the input must contain at least one token from each component part
                         isMatch = genericParts.every(part => {
                             const partTokens = normalizeForMatch(part);
-                            if (partTokens.length === 0) return true; // skip parts that resolve to nothing (e.g. stop words)
+                            if (partTokens.length === 0) return false; // empty parts (only stop words) cannot be matched
                             return partTokens.some(t => inputTokensSet.has(t));
                         });
                     } else {
