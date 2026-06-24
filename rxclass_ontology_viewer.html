@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATC Hierarchical (Levels 1 to 4) Ontology Viewer</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #0b0f19;
+            --bg-surface: #151c2c;
+            --bg-surface-hover: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.15);
+            --primary-hover: #4f46e5;
+            --emerald: #10b981;
+            --rose: #f43f5e;
+            --amber: #f59e0b;
+            --border: #334155;
+            --border-glow: rgba(255, 255, 255, 0.05);
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --radius-sm: 6px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1e1b4b 0%, var(--bg-surface) 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -20%;
+            width: 140%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 10;
+        }
+
+        .logo-section h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.85rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #818cf8, #a5b4fc, #e0e7ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-section h1 span.badge {
+            font-size: 0.75rem;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: rgba(99, 102, 241, 0.2);
+            border: 1px solid var(--primary);
+            color: #c7d2fe;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            -webkit-text-fill-color: initial;
+        }
+
+        .logo-section p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+
+        main {
+            flex: 1;
+            max-width: 1400px;
+            width: 100%;
+            margin: 2rem auto;
+            padding: 0 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .card {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            position: relative;
+            transition: border-color 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: #475569;
+        }
+
+        .upload-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .upload-box {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-md);
+            padding: 2rem 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            position: relative;
+            background: rgba(21, 28, 44, 0.4);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .upload-box:hover, .upload-box.dragover {
+            border-color: var(--primary);
+            background: var(--primary-glow);
+        }
+
+        .upload-box input[type="file"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .upload-box svg {
+            width: 48px;
+            height: 48px;
+            color: var(--text-secondary);
+            transition: color 0.25s ease;
+        }
+
+        .upload-box:hover svg {
+            color: var(--primary);
+        }
+
+        .upload-box h3 {
+            font-size: 1.05rem;
+            font-weight: 600;
+        }
+
+        .upload-box p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .upload-box .status-indicator {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: #1e293b;
+            color: var(--text-secondary);
+            border: 1px solid #334155;
+            font-weight: 500;
+        }
+
+        .upload-box.loaded {
+            border-color: var(--emerald);
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .upload-box.loaded .status-indicator {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border-color: var(--emerald);
+        }
+
+        .upload-box.error-state {
+            border-color: var(--rose);
+            background: rgba(244, 63, 94, 0.05);
+        }
+
+        .upload-box.error-state .status-indicator {
+            background: rgba(244, 63, 94, 0.2);
+            color: #f43f5e;
+            border-color: var(--rose);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .stat-card {
+            background: rgba(30, 41, 59, 0.3);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .stat-card .label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .tabs-header {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1rem;
+            gap: 8px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 0.75rem 1.25rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .search-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 1.5rem;
+        }
+
+        .input-text {
+            background-color: #0b0f19;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 0.75rem 1rem;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            width: 100%;
+            transition: border-color 0.25s ease;
+        }
+
+        .input-text:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .btn-action {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            padding: 0.75rem 1.5rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.25s ease;
+            white-space: nowrap;
+        }
+
+        .btn-action:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .explorer-layout {
+            display: grid;
+            grid-template-columns: 1fr 2.5fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 1000px) {
+            .explorer-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .table-container {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            max-height: 600px;
+            overflow-y: auto;
+            background: #0b0f19;
+            padding: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background-color: rgba(21, 28, 44, 0.8);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        /* Tree view styles */
+        .tree-container {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .tree-node {
+            margin-left: 1.25rem;
+            list-style: none;
+            position: relative;
+        }
+
+        .tree-node::before {
+            content: '';
+            position: absolute;
+            left: -12px;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background-color: var(--border);
+        }
+
+        .tree-node:last-child::before {
+            height: 12px;
+        }
+
+        .tree-node::after {
+            content: '';
+            position: absolute;
+            left: -12px;
+            top: 12px;
+            width: 10px;
+            height: 1px;
+            background-color: var(--border);
+        }
+
+        .tree-node-content {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.15s ease;
+            user-select: none;
+            margin: 2px 0;
+            border: 1px solid transparent;
+        }
+
+        .tree-node-content:hover {
+            background-color: var(--bg-surface-hover);
+            border-color: #475569;
+        }
+
+        .tree-node-content.selected {
+            background-color: rgba(99, 102, 241, 0.12);
+            border-color: var(--primary);
+            color: #a5b4fc;
+        }
+
+        .tree-node-children {
+            display: none;
+        }
+
+        .tree-node-children.expanded {
+            display: block;
+        }
+
+        .tree-chevron {
+            width: 16px;
+            height: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease;
+            color: var(--text-secondary);
+            border-radius: 4px;
+        }
+
+        .tree-chevron:hover {
+            background-color: #334155;
+            color: var(--text-primary);
+        }
+
+        .tree-chevron.expanded {
+            transform: rotate(90deg);
+        }
+
+        .tree-code {
+            font-family: monospace;
+            font-weight: 700;
+            color: #818cf8;
+            font-size: 0.9rem;
+            letter-spacing: 0.3px;
+        }
+
+        .tree-name {
+            font-weight: 500;
+        }
+
+        .tree-badge {
+            font-size: 0.7rem;
+            padding: 1px 6px;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-family: monospace;
+            margin-left: auto;
+        }
+
+        /* Details panel */
+        .details-panel {
+            background: #0b0f19;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            align-self: start;
+            position: sticky;
+            top: 2rem;
+        }
+
+        .details-title h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            font-family: 'Outfit', sans-serif;
+            color: #a5b4fc;
+        }
+
+        .details-title .meta {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-family: monospace;
+            margin-top: 2px;
+        }
+
+        .detail-section-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            border-bottom: 1px solid #1e293b;
+            padding-bottom: 4px;
+            margin-bottom: 8px;
+        }
+
+        .synonym-pill {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .validator-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 900px) {
+            .validator-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .match-card {
+            border-left: 4px solid var(--emerald);
+            background: rgba(30, 41, 59, 0.25);
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            border-top: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .match-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .match-header .type-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid var(--emerald);
+        }
+
+        .match-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .match-reason {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            background: rgba(15, 23, 42, 0.4);
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        .demo-bar {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: #fbbf24;
+            padding: 8px 16px;
+            border-radius: var(--radius-md);
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .demo-bar button {
+            background: #f59e0b;
+            color: var(--bg-base);
+            border: none;
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+
+        .demo-bar button:hover {
+            background: #d97706;
+        }
+
+        .breadcrumbs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+
+        .breadcrumbs span.item {
+            font-family: monospace;
+            background: #1e293b;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #c7d2fe;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-content">
+            <div class="logo-section">
+                <h1>ATC Hierarchical Ontology Viewer <span class="badge">V2.0</span></h1>
+                <p>Verify and navigate ATC drug-coverage mappings across Levels 1 to 4</p>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- File Uploader Card -->
+        <section class="card">
+            <div class="demo-bar" id="demo-bar">
+                <span>⚠️ No data loaded yet. Currently displaying **Demo Mode** using a mock sample of Cardovascular system (Level 1-4).</span>
+                <button onclick="dismissDemo()">Dismiss Demo</button>
+            </div>
+            
+            <h2 style="font-size: 1.1rem; margin-bottom: 1rem; color: #818cf8;">📂 Load Generated Pipeline CSVs</h2>
+            <div class="upload-grid">
+                <div class="upload-box" id="box-ontology">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <h3>atc_ontology.csv</h3>
+                    <p>Drag & drop or click to select</p>
+                    <span class="status-indicator" id="status-ontology">Not Loaded</span>
+                    <input type="file" id="file-ontology" accept=".csv">
+                </div>
+
+                <div class="upload-box" id="box-coverage">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8v4"></path>
+                    </svg>
+                    <h3>drug_atc_map.csv</h3>
+                    <p>Drag & drop or click to select</p>
+                    <span class="status-indicator" id="status-coverage">Not Loaded</span>
+                    <input type="file" id="file-coverage" accept=".csv">
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Counter Overview -->
+        <section class="stats-grid">
+            <div class="stat-card">
+                <span class="label">ATC Hierarchical Nodes</span>
+                <span class="value" id="stat-atc3">7</span>
+            </div>
+            <div class="stat-card">
+                <span class="label">Total Member Drugs Mapped</span>
+                <span class="value" id="stat-descendants">16</span>
+            </div>
+        </section>
+
+        <!-- Main Workspace Card -->
+        <section class="card" style="padding-top: 1rem;">
+            <div class="tabs-header">
+                <button class="tab-btn active" onclick="switchTab(event, 'tab-explorer')">
+                    📁 Collapsible Hierarchy Browser
+                </button>
+                <button class="tab-btn" onclick="switchTab(event, 'tab-validator')">
+                    🧪 Live Multi-level Matcher
+                </button>
+            </div>
+
+            <!-- TAB 1: Explorer -->
+            <div class="tab-content active" id="tab-explorer">
+                <div class="search-container">
+                    <input type="text" class="input-text" id="search-atc" placeholder="Search hierarchy by code or name..." onkeyup="filterTree()">
+                </div>
+
+                <div class="explorer-layout">
+                    <!-- Left: Collapsible Tree Container -->
+                    <div class="table-container">
+                        <div class="tree-container" id="tree-root-container">
+                            <!-- Collapsible Tree injected via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Right: Details panel -->
+                    <div class="details-panel" id="details-panel">
+                        <div style="color: var(--text-secondary); text-align: center; padding: 2rem 0;">
+                            Select any ATC node in the tree browser on the left to inspect its detailed concept metadata, full lineage path, and list of descendant drug mappings.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: Validator -->
+            <div class="tab-content" id="tab-validator">
+                <div class="validator-container">
+                    <!-- Live Matcher Input -->
+                    <div class="details-panel" style="background: transparent; border-color: var(--border);">
+                        <h3 style="font-size: 1.1rem; font-family: 'Outfit', sans-serif; color: #818cf8;">Validate Input String</h3>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                            Enter a messy FHIR medication description to test how it resolves to all matching ATC levels (1 to 4) under the hood.
+                        </p>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <input type="text" class="input-text" id="match-input" placeholder="e.g. metoprolol tartrate 50mg, Lipitor 20mg, etc." value="metoprolol tartrate 50mg">
+                            <button class="btn-action" onclick="runLiveMatch()">Match Medication</button>
+                        </div>
+
+                        <div style="margin-top: 1.5rem;">
+                            <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Try a quick suggestion:</span>
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px;">
+                                <button class="synonym-pill" style="cursor: pointer; border-color: var(--primary);" onclick="fillMatchInput('metoprolol tartrate 50mg')">metoprolol tartrate 50mg</button>
+                                <button class="synonym-pill" style="cursor: pointer; border-color: var(--primary);" onclick="fillMatchInput('atorvastatin calcium 20 mg')">atorvastatin calcium 20 mg</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Matching Output -->
+                    <div class="details-panel">
+                        <h3 style="font-size: 1.1rem; font-family: 'Outfit', sans-serif; color: #a5b4fc; border-bottom: 1px solid #1e293b; padding-bottom: 6px;">Match Result (Ancestors Found)</h3>
+                        <div id="validator-result" style="display: flex; flex-direction: column; gap: 10px;">
+                            <!-- Matched cards injected here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Custom CSV parser
+        function parseCSV(text) {
+            const lines = text.split(/\r?\n/);
+            if (lines.length === 0) return [];
+            const headers = parseCSVLine(lines[0]);
+            if (headers.length === 0 || headers[0] === "") return [];
+
+            const result = [];
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                const values = parseCSVLine(line);
+                const row = {};
+                headers.forEach((header, idx) => {
+                    row[header] = values[idx] !== undefined ? values[idx] : "";
+                });
+                result.push(row);
+            }
+            return result;
+        }
+
+        function parseCSVLine(line) {
+            const result = [];
+            let current = "";
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim());
+                    current = "";
+                } else {
+                    current += char;
+                }
+            }
+            result.push(current.trim());
+            
+            return result.map(val => {
+                if (val.startsWith('"') && val.endsWith('"')) {
+                    val = val.slice(1, -1);
+                }
+                return val.replace(/""/g, '"');
+            });
+        }
+
+        let ontologyData = [];
+        let coverageData = [];
+        let coverageIndex = new Map();
+        let isDemoMode = true;
+        let currentMappedDrugs = [];
+
+        // Mock Demo Data (Levels 1 to 4)
+        const demoOntology = [
+            { concept_id: "35804000", concept_code: "C", concept_name: "CARDIOVASCULAR SYSTEM", concept_class_id: "ATC 1st", parent_concept_id: "", member_ingredient_count: "2", member_drug_count: "2" },
+            { concept_id: "35804100", concept_code: "C10", concept_name: "LIPID MODIFYING AGENTS", concept_class_id: "ATC 2nd", parent_concept_id: "35804000", member_ingredient_count: "1", member_drug_count: "1" },
+            { concept_id: "35804368", concept_code: "C10A", concept_name: "LIPID MODIFYING AGENTS, PLAIN", concept_class_id: "ATC 3rd", parent_concept_id: "35804100", member_ingredient_count: "1", member_drug_count: "1" },
+            { concept_id: "35804500", concept_code: "C10AA", concept_name: "HMG CoA reductase inhibitors", concept_class_id: "ATC 4th", parent_concept_id: "35804368", member_ingredient_count: "1", member_drug_count: "1" },
+            { concept_id: "35804200", concept_code: "C07", concept_name: "BETA BLOCKING AGENTS", concept_class_id: "ATC 2nd", parent_concept_id: "35804000", member_ingredient_count: "1", member_drug_count: "1" },
+            { concept_id: "35804300", concept_code: "C07A", concept_name: "BETA BLOCKING AGENTS", concept_class_id: "ATC 3rd", parent_concept_id: "35804200", member_ingredient_count: "1", member_drug_count: "1" },
+            { concept_id: "35804400", concept_code: "C07AB", concept_name: "Beta blocking agents, selective", concept_class_id: "ATC 4th", parent_concept_id: "35804300", member_ingredient_count: "1", member_drug_count: "1" }
+        ];
+
+        const demoCoverage = [
+            { drug_concept_id: "83367", drug_concept_class_id: "Ingredient", drug_name: "atorvastatin", atc_concept_id: "35804500", atc_code: "C10AA", mapping_source: "pr_lat" },
+            { drug_concept_id: "6918", drug_concept_class_id: "Ingredient", drug_name: "metoprolol", atc_concept_id: "35804400", atc_code: "C07AB", mapping_source: "pr_lat" }
+        ];
+
+        window.onload = function() {
+            loadDemoData();
+            setupFileUploads();
+        };
+
+        function loadDemoData() {
+            ontologyData = [...demoOntology];
+            coverageData = [...demoCoverage];
+            isDemoMode = true;
+            document.getElementById('demo-bar').style.display = 'flex';
+            processAndRender();
+        }
+
+        function dismissDemo() {
+            ontologyData = [];
+            coverageData = [];
+            isDemoMode = false;
+            document.getElementById('demo-bar').style.display = 'none';
+            processAndRender();
+        }
+
+        function setupFileUploads() {
+            const configureBox = (boxId, fileId, statusId, type) => {
+                const box = document.getElementById(boxId);
+                const input = document.getElementById(fileId);
+                
+                input.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) handleFile(file, box, statusId, type);
+                });
+                
+                box.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    box.classList.add('dragover');
+                });
+                
+                box.addEventListener('dragleave', () => {
+                    box.classList.remove('dragover');
+                });
+                
+                box.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    box.classList.remove('dragover');
+                    const file = e.dataTransfer.files[0];
+                    if (file) handleFile(file, box, statusId, type);
+                });
+            };
+
+            configureBox('box-ontology', 'file-ontology', 'status-ontology', 'ontology');
+            configureBox('box-coverage', 'file-coverage', 'status-coverage', 'coverage');
+        }
+
+        function handleFile(file, box, statusId, type) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const text = e.target.result;
+                    const parsed = parseCSV(text);
+                    if (parsed.length === 0) throw new Error("File is empty or invalid.");
+
+                    if (isDemoMode) {
+                        ontologyData = [];
+                        coverageData = [];
+                        isDemoMode = false;
+                        document.getElementById('demo-bar').style.display = 'none';
+                    }
+
+                    if (type === 'ontology') ontologyData = parsed;
+                    else if (type === 'coverage') coverageData = parsed;
+
+                    box.classList.remove('error-state');
+                    box.classList.add('loaded');
+                    document.getElementById(statusId).innerText = `Loaded (${parsed.length} rows)`;
+                    processAndRender();
+                } catch(err) {
+                    box.classList.add('error-state');
+                    document.getElementById(statusId).innerText = `Error: ${err.message}`;
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function processAndRender() {
+            const totalNodes = ontologyData.length;
+            const uniqueDescendants = new Set(coverageData.map(c => c.drug_concept_id));
+
+            document.getElementById('stat-atc3').innerText = totalNodes || (isDemoMode ? 7 : 0);
+            document.getElementById('stat-descendants').innerText = uniqueDescendants.size;
+
+            buildCoverageIndex();
+            buildAndRenderTree();
+            runLiveMatch();
+        }
+
+        // Tree Builder using Adjacency List
+        let treeRoots = [];
+        let nodesMap = new Map();
+
+        function buildAndRenderTree() {
+            const container = document.getElementById('tree-root-container');
+            container.innerHTML = '';
+
+            if (ontologyData.length === 0) {
+                container.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:2rem 0;">No hierarchy data loaded.</div>';
+                return;
+            }
+
+            nodesMap.clear();
+            treeRoots = [];
+
+            // Map all rows to node objects
+            ontologyData.forEach(row => {
+                if (row.concept_id) {
+                    nodesMap.set(row.concept_id, {
+                        id: row.concept_id,
+                        code: row.concept_code,
+                        name: row.concept_name,
+                        classId: row.concept_class_id,
+                        parentId: row.parent_concept_id || null,
+                        memberCount: parseInt(row.member_drug_count) || 0,
+                        memberIngredientCount: parseInt(row.member_ingredient_count) || 0,
+                        memberDrugCount: parseInt(row.member_drug_count) || 0,
+                        children: []
+                    });
+                }
+            });
+
+            // Associate parents and children
+            nodesMap.forEach(node => {
+                if (node.parentId && nodesMap.has(node.parentId)) {
+                    nodesMap.get(node.parentId).children.push(node);
+                } else {
+                    treeRoots.push(node);
+                }
+            });
+
+            // Sort levels alphabetically by code
+            const sortFunc = (a, b) => a.code.localeCompare(b.code);
+            treeRoots.sort(sortFunc);
+            nodesMap.forEach(node => node.children.sort(sortFunc));
+
+            renderTreeNodes(treeRoots, container);
+            
+            // Auto-select the first root node
+            if (treeRoots.length > 0) {
+                const firstElement = container.querySelector('.tree-node-content');
+                if (firstElement) firstElement.click();
+            }
+        }
+
+        function renderTreeNodes(nodes, parentElement) {
+            const ul = document.createElement('ul');
+            ul.style.listStyle = 'none';
+            ul.style.paddingLeft = '0';
+
+            nodes.forEach(node => {
+                const li = document.createElement('li');
+                li.className = 'tree-node';
+                li.setAttribute('data-node-id', node.id);
+
+                const content = document.createElement('div');
+                content.className = 'tree-node-content';
+                
+                content.onclick = (e) => {
+                    if (e.target.closest('.tree-chevron')) {
+                        e.stopPropagation();
+                        toggleNode(li);
+                    } else {
+                        selectTreeNode(node.id, content);
+                    }
+                };
+
+                const hasChildren = node.children.length > 0;
+
+                let chevronHtml = '';
+                if (hasChildren) {
+                    chevronHtml = `
+                        <span class="tree-chevron">
+                            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="width:10px;height:10px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"></path>
+                            </svg>
+                        </span>
+                    `;
+                } else {
+                    chevronHtml = `<span class="tree-chevron" style="opacity:0;pointer-events:none;"></span>`;
+                }
+
+                content.innerHTML = `
+                    ${chevronHtml}
+                    <span class="tree-code">${escapeHtml(node.code)}</span>
+                    <span class="tree-name">${escapeHtml(node.name)}</span>
+                    <span class="tree-badge">${escapeHtml(String(node.memberCount))} drugs</span>
+                `;
+
+                li.appendChild(content);
+
+                if (hasChildren) {
+                    const childrenContainer = document.createElement('div');
+                    childrenContainer.className = 'tree-node-children';
+                    renderTreeNodes(node.children, childrenContainer);
+                    li.appendChild(childrenContainer);
+                }
+
+                ul.appendChild(li);
+            });
+
+            parentElement.appendChild(ul);
+        }
+
+        function toggleNode(liElement) {
+            const children = liElement.querySelector('.tree-node-children');
+            const chevron = liElement.querySelector('.tree-chevron');
+            if (children) {
+                children.classList.toggle('expanded');
+                if (chevron) chevron.classList.toggle('expanded');
+            }
+        }
+
+        function getATC4Descendants(node) {
+            const result = [];
+            function traverse(curr) {
+                if (curr.classId === 'ATC 4th') {
+                    result.push(curr.id);
+                }
+                curr.children.forEach(child => traverse(child));
+            }
+            traverse(node);
+            return result;
+        }
+
+        function selectTreeNode(nodeId, element) {
+            const container = document.getElementById('tree-root-container');
+            container.querySelectorAll('.tree-node-content').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+
+            // Load Details panel
+            const node = nodesMap.get(nodeId);
+            const atc4Ids = new Set(getATC4Descendants(node));
+            const coverageRows = [];
+            atc4Ids.forEach(id => {
+                const rows = coverageIndex.get(id) || [];
+                rows.forEach(r => coverageRows.push(r));
+            });
+            
+            // De-duplicate coverage rows by drug_concept_id
+            const seenDrugs = new Set();
+            const uniqueCoverageRows = [];
+            coverageRows.forEach(row => {
+                if (!seenDrugs.has(row.drug_concept_id)) {
+                    seenDrugs.add(row.drug_concept_id);
+                    uniqueCoverageRows.push(row);
+                }
+            });
+
+            currentMappedDrugs = uniqueCoverageRows;
+            const detailsPanel = document.getElementById('details-panel');
+
+            // Build lineage breadcrumbs
+            let breadcrumbHtml = '';
+            let curr = node;
+            const chain = [];
+            while (curr) {
+                chain.unshift(curr);
+                curr = curr.parentId ? nodesMap.get(curr.parentId) : null;
+            }
+            chain.forEach((item, idx) => {
+                if (idx > 0) breadcrumbHtml += ' &rarr; ';
+                breadcrumbHtml += `<span class="item" onclick="triggerNodeClick('${escapeHtml(String(item.id))}')" style="cursor:pointer;" title="${escapeHtml(item.name)}">${escapeHtml(item.code)}</span>`;
+            });
+
+            // Build Descendants table
+            let descendantsHtml = '';
+            if (uniqueCoverageRows.length > 0) {
+                descendantsHtml = `
+                    <div style="margin-bottom: 1rem; display: flex; gap: 10px; align-items: center;">
+                        <input type="text" class="input-text" id="search-drugs" placeholder="Filter mapped drugs by name, ID, or class..." onkeyup="filterDrugs()" style="padding: 0.5rem 0.75rem; font-size: 0.85rem; max-width: 350px;">
+                        <span style="font-size: 0.8rem; color: var(--text-secondary);" id="filtered-count">Showing all ${uniqueCoverageRows.length} drugs</span>
+                    </div>
+                    <div class="table-container" style="max-height: 400px;" id="drugs-table-container">
+                        ${renderDrugsTableHTML(uniqueCoverageRows)}
+                    </div>
+                `;
+            } else {
+                descendantsHtml = `<div style="color:var(--text-muted);font-size:0.875rem;">No direct descendant drugs map to this level.</div>`;
+            }
+
+            detailsPanel.innerHTML = `
+                <div class="details-title">
+                    <h2>${escapeHtml(node.name)}</h2>
+                    <div class="meta">
+                        ATC Code: ${escapeHtml(node.code)} | Level: ${escapeHtml(node.classId)} | Concept ID: ${escapeHtml(String(node.id))}<br>
+                        Distinct Ingredients: ${node.memberIngredientCount} | Total Drugs: ${node.memberDrugCount}
+                    </div>
+                </div>
+
+                <div>
+                    <div class="detail-section-title">Hierarchy Lineage</div>
+                    <div class="breadcrumbs">${breadcrumbHtml}</div>
+                </div>
+
+                <div>
+                    <div class="detail-section-title">Mapped Drug Descendants</div>
+                    ${descendantsHtml}
+                </div>
+            `;
+        }
+
+        function renderDrugsTableHTML(rows) {
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Concept ID</th>
+                            <th>Concept Class</th>
+                            <th>Drug Name</th>
+                            <th>Source</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            rows.forEach(row => {
+                html += `
+                    <tr>
+                        <td style="font-family:monospace;color:var(--text-secondary);">${escapeHtml(String(row.drug_concept_id))}</td>
+                        <td><span class="synonym-pill" style="font-size:0.72rem;padding:2px 6px;">${escapeHtml(row.drug_concept_class_id || 'Ingredient')}</span></td>
+                        <td style="font-weight:600;">${escapeHtml(row.drug_name)}</td>
+                        <td><span style="font-size:0.75rem;font-family:monospace;color:var(--primary);">${escapeHtml(row.mapping_source || 'N/A')}</span></td>
+                    </tr>
+                `;
+            });
+            html += `</tbody></table>`;
+            return html;
+        }
+
+        function filterDrugs() {
+            const query = document.getElementById('search-drugs').value.trim().toLowerCase();
+            const container = document.getElementById('drugs-table-container');
+            const countLabel = document.getElementById('filtered-count');
+            if (!container) return;
+
+            if (!query) {
+                container.innerHTML = renderDrugsTableHTML(currentMappedDrugs);
+                if (countLabel) countLabel.innerText = `Showing all ${currentMappedDrugs.length} drugs`;
+                return;
+            }
+
+            const filtered = currentMappedDrugs.filter(row => 
+                row.drug_name.toLowerCase().includes(query) || 
+                row.drug_concept_id.toString().includes(query) ||
+                (row.drug_concept_class_id && row.drug_concept_class_id.toLowerCase().includes(query)) ||
+                (row.mapping_source && row.mapping_source.toLowerCase().includes(query))
+            );
+
+            container.innerHTML = renderDrugsTableHTML(filtered);
+            if (countLabel) countLabel.innerText = `Showing ${filtered.length} of ${currentMappedDrugs.length} drugs`;
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        const PHARMA_STOP_TOKENS = new Set([
+            'calcium','sodium','potassium','chloride','hydrochloride','hcl','sulfate','sulphate',
+            'tartrate','phosphate','acetate','citrate','gluconate','bromide','maleate','fumarate',
+            'succinate','besylate','mesylate','tosylate','valerate','oxalate','carbonate',
+            'bicarbonate','dihydrochloride','trihydrate','monohydrate','anhydrous',
+            'mg','mcg','ug','g','ml','mmol','meq','iu','units','unit',
+            'tablet','tablets','capsule','capsules','injection','solution','syrup','cream',
+            'ointment','gel','patch','inhaler','powder','suspension','oral','extended',
+            'release','delayed','er','sr','cr','xr','dr','modified','coated','enteric'
+        ]);
+
+        function normalizeForMatch(str) {
+            return str.toLowerCase()
+                .split(/[\s\-\/,]+/)
+                .filter(t => t.length > 1 && !PHARMA_STOP_TOKENS.has(t) && !/^\d/.test(t))
+                .join(' ');
+        }
+
+        function buildCoverageIndex() {
+            coverageIndex = new Map();
+            coverageData.forEach(row => {
+                const key = row.atc_concept_id;
+                if (!coverageIndex.has(key)) coverageIndex.set(key, []);
+                coverageIndex.get(key).push(row);
+            });
+        }
+
+        // Live Matcher (Resolves to all matching levels in the hierarchy)
+        function runLiveMatch() {
+            const input = document.getElementById('match-input').value.trim().toLowerCase();
+            const resultDiv = document.getElementById('validator-result');
+            resultDiv.innerHTML = '';
+
+            if (!input) {
+                resultDiv.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:2rem 0;">Enter a search query to validate mappings.</div>';
+                return;
+            }
+
+            const normalizedInput = normalizeForMatch(input);
+            const matches = [];
+
+            // Match by coverage and walk up parent hierarchy
+            coverageData.forEach(row => {
+                const drugName = row.drug_name.toLowerCase();
+                const normalizedDrugName = normalizeForMatch(drugName);
+                if (!normalizedDrugName) return;
+                if (normalizedInput.includes(normalizedDrugName) || normalizedDrugName.includes(normalizedInput)) {
+                    let curr = nodesMap.get(row.atc_concept_id);
+                    while (curr) {
+                        matches.push({
+                            ancestor_id: curr.id,
+                            drug_name: row.drug_name,
+                            drug_id: row.drug_concept_id
+                        });
+                        curr = curr.parentId ? nodesMap.get(curr.parentId) : null;
+                    }
+                }
+            });
+
+            // De-duplicate ancestors
+            const uniqueAncestors = [];
+            const seen = new Set();
+            matches.forEach(m => {
+                if (!seen.has(m.ancestor_id)) {
+                    seen.add(m.ancestor_id);
+                    uniqueAncestors.push(m);
+                }
+            });
+
+            if (uniqueAncestors.length === 0) {
+                resultDiv.innerHTML = `
+                    <div style="text-align:center;padding:2rem 0;color:var(--rose);border:1px dashed var(--rose);border-radius:var(--radius-md);background:rgba(244,63,94,0.03);">
+                        <strong>❌ No resolve matches found.</strong>
+                    </div>
+                `;
+                return;
+            }
+
+            // Sort ancestors by code length (shorter first, i.e. highest level first)
+            const resolvedNodes = uniqueAncestors.map(m => {
+                const node = nodesMap.get(m.ancestor_id);
+                return {
+                    node: node,
+                    drug_name: m.drug_name,
+                    drug_id: m.drug_id
+                };
+            }).filter(x => x.node !== undefined);
+
+            resolvedNodes.sort((a, b) => a.node.code.length - b.node.code.length);
+
+            resolvedNodes.forEach(rn => {
+                const card = document.createElement('div');
+                card.className = 'match-card';
+                card.style.cursor = 'pointer';
+                card.onclick = () => {
+                    switchTab(null, 'tab-explorer');
+                    triggerNodeClick(rn.node.id);
+                };
+                card.innerHTML = `
+                    <div class="match-header">
+                        <div class="match-title">${escapeHtml(rn.node.name)}</div>
+                        <span class="type-badge">${escapeHtml(rn.node.classId)}</span>
+                    </div>
+                    <div style="font-size:0.85rem;color:#818cf8;font-family:monospace;font-weight:700;">
+                        ATC Code: ${escapeHtml(rn.node.code)} | Node ID: ${escapeHtml(String(rn.node.id))}
+                    </div>
+                    <div class="match-reason">
+                        Matches descendant drug '${escapeHtml(rn.drug_name)}' (Concept ID: ${escapeHtml(String(rn.drug_id))})
+                    </div>
+                `;
+                resultDiv.appendChild(card);
+            });
+        }
+
+        // Programmatic tree traversal select
+        function triggerNodeClick(nodeId) {
+            // Find element and expand its parents
+            const container = document.getElementById('tree-root-container');
+            const targetNode = container.querySelector(`[data-node-id="${nodeId}"]`);
+            if (targetNode) {
+                // Expand all parent tree-node-children blocks
+                let parent = targetNode.parentElement.closest('.tree-node');
+                while (parent) {
+                    const childrenBlock = parent.querySelector('.tree-node-children');
+                    const chevron = parent.querySelector('.tree-chevron');
+                    if (childrenBlock) childrenBlock.classList.add('expanded');
+                    if (chevron) chevron.classList.add('expanded');
+                    parent = parent.parentElement.closest('.tree-node');
+                }
+                const content = targetNode.querySelector('.tree-node-content');
+                if (content) content.click();
+                
+                // Scroll into view
+                targetNode.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        function fillMatchInput(val) {
+            document.getElementById('match-input').value = val;
+            runLiveMatch();
+        }
+
+        function switchTab(e, tabId) {
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            if (e) e.currentTarget.classList.add('active');
+            else {
+                // Find tab button matching target tabId
+                const targetBtn = Array.from(buttons).find(b => b.onclick.toString().includes(tabId));
+                if (targetBtn) targetBtn.classList.add('active');
+            }
+
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        // Search filtering for tree hierarchy
+        function filterTree() {
+            const val = document.getElementById('search-atc').value.toLowerCase().trim();
+            const container = document.getElementById('tree-root-container');
+            const nodes = container.querySelectorAll('.tree-node');
+
+            if (!val) {
+                // Restore default view
+                nodes.forEach(node => {
+                    node.style.display = '';
+                    const children = node.querySelector('.tree-node-children');
+                    const chevron = node.querySelector('.tree-chevron');
+                    // Collapse nested children unless they were already expanded
+                    if (children && !isDemoMode) {
+                        children.classList.remove('expanded');
+                        if (chevron) chevron.classList.remove('expanded');
+                    }
+                });
+                return;
+            }
+
+            // Find matching node IDs
+            const matchingIds = new Set();
+            nodesMap.forEach(node => {
+                if (node.code.toLowerCase().includes(val) || node.name.toLowerCase().includes(val)) {
+                    matchingIds.add(node.id);
+                    // Add all parents to matching list to keep them visible
+                    let curr = node.parentId ? nodesMap.get(node.parentId) : null;
+                    while (curr) {
+                        matchingIds.add(curr.id);
+                        curr = curr.parentId ? nodesMap.get(curr.parentId) : null;
+                    }
+                }
+            });
+
+            // Show matching nodes, hide others, and expand matching paths
+            nodes.forEach(nodeElement => {
+                const nodeId = nodeElement.getAttribute('data-node-id');
+                if (matchingIds.has(nodeId)) {
+                    nodeElement.style.display = '';
+                    const children = nodeElement.querySelector('.tree-node-children');
+                    const chevron = nodeElement.querySelector('.tree-chevron');
+                    if (children) {
+                        children.classList.add('expanded');
+                        if (chevron) chevron.classList.add('expanded');
+                    }
+                } else {
+                    nodeElement.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
