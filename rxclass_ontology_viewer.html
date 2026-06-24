@@ -1240,15 +1240,44 @@
                 return;
             }
 
-            const normalizedInput = normalizeForMatch(input);
+            const inputClean = input.toLowerCase().replace(/[\[\]]/g, '').trim();
+            const normalizedInput = normalizeForMatch(inputClean);
             const matches = [];
 
             // Match by coverage and walk up parent hierarchy
             coverageData.forEach(row => {
-                const drugName = row.drug_name.toLowerCase();
-                const normalizedDrugName = normalizeForMatch(drugName);
-                if (!normalizedDrugName) return;
-                if (normalizedInput.includes(normalizedDrugName) || normalizedDrugName.includes(normalizedInput)) {
+                const drugNameClean = row.drug_name.toLowerCase();
+                
+                // Extract brand name if present (inside brackets)
+                const brandMatch = drugNameClean.match(/\[(.*?)\]/);
+                const brand = brandMatch ? brandMatch[1].trim() : null;
+                
+                // Extract generic part (before brackets)
+                const generic = drugNameClean.replace(/\[.*?\]/g, '').trim();
+                
+                const normalizedGeneric = normalizeForMatch(generic);
+                const normalizedBrand = brand ? normalizeForMatch(brand) : null;
+                
+                let isMatch = false;
+                
+                // 1. Brand match check
+                if (normalizedBrand && (normalizedInput.includes(normalizedBrand) || normalizedBrand.includes(normalizedInput))) {
+                    isMatch = true;
+                }
+                
+                // 2. Generic match check
+                if (!isMatch && normalizedGeneric) {
+                    const components = generic.split(/\s*\/\s*/).map(c => normalizeForMatch(c).trim()).filter(c => c.length > 0);
+                    if (components.length > 1) {
+                        // For combination drugs, the input must contain ALL components
+                        isMatch = components.every(comp => normalizedInput.includes(comp));
+                    } else {
+                        // For single ingredient drugs, either the input contains the generic name or vice versa
+                        isMatch = normalizedInput.includes(normalizedGeneric) || normalizedGeneric.includes(normalizedInput);
+                    }
+                }
+
+                if (isMatch) {
                     let curr = nodesMap.get(row.atc_concept_id);
                     while (curr) {
                         matches.push({
