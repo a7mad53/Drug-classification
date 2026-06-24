@@ -1214,10 +1214,10 @@
         ]);
 
         function normalizeForMatch(str) {
+            if (!str) return [];
             return str.toLowerCase()
-                .split(/[\s\-\/,]+/)
-                .filter(t => t.length > 1 && !PHARMA_STOP_TOKENS.has(t) && !/^\d/.test(t))
-                .join(' ');
+                .split(/[\s\-\/,()\{\}\[\]\+]+/)
+                .filter(t => t.length > 1 && !PHARMA_STOP_TOKENS.has(t) && !/^\d/.test(t));
         }
 
         function buildCoverageIndex() {
@@ -1240,40 +1240,51 @@
                 return;
             }
 
-            const inputClean = input.toLowerCase().replace(/[\[\]]/g, '').trim();
-            const normalizedInput = normalizeForMatch(inputClean);
+            const inputClean = input.replace(/[\[\]]/g, '').trim();
+            const inputTokens = normalizeForMatch(inputClean);
+            if (inputTokens.length === 0) {
+                resultDiv.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:2rem 0;">Enter a search query to validate mappings.</div>';
+                return;
+            }
+            const inputTokensSet = new Set(inputTokens);
             const matches = [];
 
             // Match by coverage and walk up parent hierarchy
             coverageData.forEach(row => {
                 const drugNameClean = row.drug_name.toLowerCase();
                 
-                // Extract brand name if present (inside brackets)
-                const brandMatch = drugNameClean.match(/\[(.*?)\]/);
-                const brand = brandMatch ? brandMatch[1].trim() : null;
+                // Extract all brand names (contents inside all square brackets)
+                const brandTokens = [];
+                const bracketMatches = drugNameClean.matchAll(/\[(.*?)\]/g);
+                for (const match of bracketMatches) {
+                    normalizeForMatch(match[1]).forEach(t => brandTokens.push(t));
+                }
                 
-                // Extract generic part (before brackets)
-                const generic = drugNameClean.replace(/\[.*?\]/g, '').trim();
-                
-                const normalizedGeneric = normalizeForMatch(generic);
-                const normalizedBrand = brand ? normalizeForMatch(brand) : null;
+                // Generic part is the drug name with brackets removed
+                const generic = drugNameClean.replace(/\[.*?\]/g, ' ');
                 
                 let isMatch = false;
                 
                 // 1. Brand match check
-                if (normalizedBrand && (normalizedInput.includes(normalizedBrand) || normalizedBrand.includes(normalizedInput))) {
-                    isMatch = true;
+                if (brandTokens.length > 0) {
+                    const brandTokensSet = new Set(brandTokens);
+                    isMatch = inputTokens.some(t => brandTokensSet.has(t));
                 }
                 
                 // 2. Generic match check
-                if (!isMatch && normalizedGeneric) {
-                    const components = generic.split(/\s*\/\s*/).map(c => normalizeForMatch(c).trim()).filter(c => c.length > 0);
-                    if (components.length > 1) {
-                        // For combination drugs, the input must contain ALL components
-                        isMatch = components.every(comp => normalizedInput.includes(comp));
+                if (!isMatch) {
+                    const genericParts = generic.split(/\s*\/\s*/);
+                    if (genericParts.length > 1) {
+                        // For combination drugs, the input must contain at least one token from each component part
+                        isMatch = genericParts.every(part => {
+                            const partTokens = normalizeForMatch(part);
+                            if (partTokens.length === 0) return true; // skip parts that resolve to nothing (e.g. stop words)
+                            return partTokens.some(t => inputTokensSet.has(t));
+                        });
                     } else {
-                        // For single ingredient drugs, either the input contains the generic name or vice versa
-                        isMatch = normalizedInput.includes(normalizedGeneric) || normalizedGeneric.includes(normalizedInput);
+                        // For single ingredient drugs, the user input must contain the active ingredient token
+                        const genericTokens = normalizeForMatch(generic);
+                        isMatch = genericTokens.some(t => inputTokensSet.has(t));
                     }
                 }
 
